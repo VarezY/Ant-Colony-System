@@ -22,7 +22,10 @@ public class SimulationManager : MonoBehaviour
     public List<ModelKota> kotaList = new List<ModelKota>();
     private int kotaTarget = 0;
     [SerializeField] private List<AgentBehaviour> Agents = new List<AgentBehaviour>();
-    
+    public List<List<float>> jarakAntarKota = new List<List<float>>();
+	public List<List<float>> inversJarakAntarKota = new List<List<float>>();
+	public List<List<float>> pheromoneGlobal = new List<List<float>>();
+	
     // Start is called before the first frame update
     void Start()
     {
@@ -44,6 +47,49 @@ public class SimulationManager : MonoBehaviour
         }
         
         UpdateNextKota();
+		
+		// Menghitung jarak Antar kota -> Vector3.Distance(a, b);
+		for (int i = 0; i < daftarKota.Length; i++)
+		{
+			List<float> jarak = new List<float>();
+			
+			for (int j = 0; j < daftarKota.Length; j++)
+			{
+				float _jarak = Vector3.Distance(daftarKota[i].transform.position, daftarKota[j].transform.position);
+				
+				jarak.Add(_jarak);
+			}
+			
+			jarakAntarKota.Add(jarak);
+		}
+		
+		// Hitung invers 		
+		for (int i = 0; i < daftarKota.Length; i++)
+		{
+			List<float> _invers = new List<float>();
+			
+			for (int j = 0; j < daftarKota.Length; j++)
+			{
+				_invers.Add( 1 / jarakAntarKota[i][j]);				
+			}
+			
+			inversJarakAntarKota.Add(_invers);
+		}			
+		
+		// Hitung Pheromone
+		for (int i = 0; i < daftarKota.Length; i++)
+		{
+			List<float> pheromone = new List<float>();
+			
+			for (int j = 0; j < daftarKota.Length; j++)
+			{
+				pheromone.Add(0.000001f);
+				//pheromoneGlobal[i][j] = .000001f;
+			}
+			
+			pheromoneGlobal.Add(pheromone);
+		}			
+		
     }
 
     // Update is called once per frame

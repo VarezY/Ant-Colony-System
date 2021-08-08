@@ -1,6 +1,11 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
+using System.Linq;
+using DefaultNamespace;
+using Random = UnityEngine.Random;
 
 public class SimulationManager : MonoBehaviour
 {
@@ -18,19 +23,41 @@ public class SimulationManager : MonoBehaviour
     }
     
     // Variabels 
-    private GameObject[] daftarKota;
-    public List<ModelKota> kotaList = new List<ModelKota>();
+    [SerializeField] private bool ExportDataAwal;
+    [Space] [SerializeField] private GameObject _prefabsSemut;
+    [SerializeField] private GameObject parentAgent;
+	[Space]
+    [SerializeField] private GameObject[] daftarKota;
+    private List<ModelKota> kotaList = new List<ModelKota>();
+    
     private int kotaTarget = 0;
+    private List<double> kotaTerdekat = new List<double>();
+    private int startPoint;
+    private int kotaSelanjutnya;
+    public static string myData;
+    
     [SerializeField] private List<AgentBehaviour> Agents = new List<AgentBehaviour>();
-    public List<List<float>> jarakAntarKota = new List<List<float>>();
-	public List<List<float>> inversJarakAntarKota = new List<List<float>>();
-	public List<List<float>> pheromoneGlobal = new List<List<float>>();
+    
+    private List<List<float>> jarakAntarKota = new List<List<float>>();
+	private List<List<float>> inversJarakAntarKota = new List<List<float>>();
 	
-    // Start is called before the first frame update
+	public static List<List<float>> pheromoneGlobal = new List<List<float>>();
+
+	private ANCOS agentSemut = new ANCOS();
+	
+	// Start is called before the first frame update
     void Start()
     {
+	    // Mendapatkan semua gameObject Kota
         daftarKota = GameObject.FindGameObjectsWithTag("Kota");
 
+        // Instantiate Agent di random Kota
+        startPoint = Random.Range(0, Konstanta.jumlahKota);
+        GameObject newAgent = Instantiate(_prefabsSemut, daftarKota[startPoint].transform.position,
+	        Quaternion.identity);
+        newAgent.transform.parent = parentAgent.transform;
+
+        // Mengambil semua lokasi kota yg ada di daftarKota
         foreach (GameObject Kota in daftarKota)
         {
             ModelKota mKota = new ModelKota()
@@ -45,10 +72,8 @@ public class SimulationManager : MonoBehaviour
         {
             Agents.Add(semut.GetComponent<AgentBehaviour>());
         }
-        
-        UpdateNextKota();
-		
-		// Menghitung jarak Antar kota -> Vector3.Distance(a, b);
+
+        // Menghitung jarak Antar kota -> Vector3.Distance(a, b);
 		for (int i = 0; i < daftarKota.Length; i++)
 		{
 			List<float> jarak = new List<float>();
@@ -63,12 +88,12 @@ public class SimulationManager : MonoBehaviour
 			jarakAntarKota.Add(jarak);
 		}
 		
-		// Hitung invers 		
-		for (int i = 0; i < daftarKota.Length; i++)
+		// Hitung invers dari jarak kota		
+		for (int i = 0; i < jarakAntarKota.Count; i++)
 		{
 			List<float> _invers = new List<float>();
 			
-			for (int j = 0; j < daftarKota.Length; j++)
+			for (int j = 0; j < jarakAntarKota.Count; j++)
 			{
 				_invers.Add( 1 / jarakAntarKota[i][j]);				
 			}
@@ -88,8 +113,71 @@ public class SimulationManager : MonoBehaviour
 			}
 			
 			pheromoneGlobal.Add(pheromone);
-		}			
+		}
+
+		#region Create Data for Export CSV
+
+		myData += "Data Jarak Antar Kota\n";
+		for (int i = 0; i < jarakAntarKota.Count; i++)
+		{
+			for (int j = 0; j < jarakAntarKota.Count; j++)
+			{
+				myData += jarakAntarKota[i][j] + ",";
+			}
+			myData += "\n";
+		}
+
+		myData += "\n\n";
+
+		myData += "Data Invers Jarak Antar Kota\n";
+		for (int i = 0; i < inversJarakAntarKota.Count; i++)
+		{
+			for (int j = 0; j < inversJarakAntarKota.Count; j++)
+			{
+				myData += inversJarakAntarKota[i][j] + ",";
+			}
+
+			myData += "\n";
+		}
 		
+		myData += "\n\n";
+		
+		myData += "Pheromone Awal\n";
+		for (int i = 0; i < inversJarakAntarKota.Count; i++)
+		{
+			for (int j = 0; j < inversJarakAntarKota.Count; j++)
+			{
+				myData += pheromoneGlobal[i][j] + ",";
+			}
+
+			myData += "\n";
+		}
+		
+		myData += "\n\n";
+
+		#endregion
+		
+		if (ExportDataAwal)
+		{
+			StartCoroutine(Konstanta.ExportCSV("report", myData));
+		}
+
+		agentSemut.PheromoneLokal = pheromoneGlobal;
+		
+		for (int i = 0; i < daftarKota.Length; i++)
+		{
+			if (startPoint != i)
+			{
+				agentSemut.ListKotaBelumDitempati.Add(i);
+			}
+			else
+			{
+				agentSemut.ListKotaDitempati.Add(i);
+			}
+		}
+		
+		UpdateNextKota();
+
     }
 
     // Update is called once per frame
@@ -97,35 +185,44 @@ public class SimulationManager : MonoBehaviour
     {
         for (int i = 0; i < Agents.Count; i++)
         {
-            if (KotaAgentDistance(Agents[i].transform, daftarKota[kotaTarget].transform))
+            if (KotaAgentDistance(Agents[i].transform, daftarKota[kotaSelanjutnya].transform))
             {
-                // UpdateNextKota();
-                // UpdateNextKotaperAgent(Agents[i]);
+                UpdateNextKota();
             }
         }
     }
 
     private void UpdateNextKota()
     {
-        kotaTarget++;
-        kotaTarget %= kotaList.Count;
+	    kotaTerdekat.Clear();
+	    for (int kotaTujuan = 0; kotaTujuan < daftarKota.Length; kotaTujuan++)
+	    {
+		    if (agentSemut.ListKotaDitempati.Contains(kotaTujuan))
+		    {
+			    kotaTerdekat.Add(0f);
+		    }
+		    else
+		    {
+			    kotaTerdekat.Add(agentSemut.CalcTemporary(startPoint, kotaTujuan, pheromoneGlobal, inversJarakAntarKota, Konstanta.beta));
+		    }
+	    }
+
+        kotaSelanjutnya = kotaTerdekat.IndexOf(kotaTerdekat.Max());
+
+		agentSemut.PindahKota(kotaSelanjutnya);
+        
+        startPoint = kotaSelanjutnya;
 
         for (int i = 0; i < Agents.Count; i++)
         {
-            Agents[i].target = daftarKota[kotaTarget].transform;
+            Agents[i].target = daftarKota[kotaSelanjutnya].transform;
         }
-    }
-
-    private void UpdateNextKotaperAgent(AgentBehaviour _agent)
-    {
-        kotaTarget++;
-        kotaTarget %= kotaList.Count;
-
-        _agent.target = daftarKota[kotaTarget].transform;
     }
 
     private bool KotaAgentDistance(Transform _agent, Transform _target)
     {
-        return Vector3.Distance(_agent.position, _target.position) < 1;
+        return Vector3.Distance(_agent.position, _target.position) < 1.5f;
     }
+
+    
 }

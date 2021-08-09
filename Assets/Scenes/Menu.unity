@@ -180,7 +180,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "Team 1: \nAlifian Alvarez (152018021)\nGilang Rama (152018021)"
+  m_text: "Team 1: \nAlifian Alvarez (152018021)\nGilang Rama (152018033)"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: f42bb283f8b9ac84eb42dbffe404c11b, type: 2}
   m_sharedMaterial: {fileID: 6572841608249302506, guid: f42bb283f8b9ac84eb42dbffe404c11b, type: 2}

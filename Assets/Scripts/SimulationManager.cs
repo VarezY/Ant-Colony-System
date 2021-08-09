@@ -9,20 +9,24 @@ using Random = UnityEngine.Random;
 
 public class SimulationManager : MonoBehaviour
 {
-    public class ModelAgent
-    {
-        public float kecepatan;
-        public float rotasi;
-        public float targetDistance;
-    }
+	#region Class Model
+
+	public class ModelAgent
+	{
+		public float kecepatan;
+		public float rotasi;
+		public float targetDistance;
+	}
     
-    public class ModelKota
-    {
-        public string namaKota;
-        public Vector3 koordinatKota;
-    }
-    
-    // Variabels 
+	public class ModelKota
+	{
+		public string namaKota;
+		public Vector3 koordinatKota;
+	}
+
+	#endregion
+	
+	// Variabels 
     [SerializeField] private bool ExportDataAwal;
     [Space] [SerializeField] private GameObject _prefabsSemut;
     [SerializeField] private GameObject parentAgent;
@@ -242,6 +246,7 @@ public class SimulationManager : MonoBehaviour
 	    pheromoneGlobal = agentSemut.PheromoneLokal;
 	    agentSemut.ListKotaDitempati.Clear();
 	    agentSemut.ListKotaBelumDitempati.Clear();
+	    agentSemut.TotalJarakAgent = 0f;
 	    agentSemut.NamaSemut = "Semut " + totalSemut;
 	    
 	    startPoint = Random.Range(0, Konstanta.jumlahKota);

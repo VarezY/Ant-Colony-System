@@ -9,7 +9,6 @@ namespace DefaultNamespace
         public static int beta = 2;
         public static float q0 = 0.9f;
         public static int jumlahKota;
-        public static int jumlahSemut;
 
         public static float P
         {

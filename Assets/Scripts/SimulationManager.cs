@@ -28,34 +28,27 @@ public class SimulationManager : MonoBehaviour
     [SerializeField] private GameObject parentAgent;
 	[Space]
     [SerializeField] private GameObject[] daftarKota;
-    private List<ModelKota> kotaList = new List<ModelKota>();
-    
-    private int kotaTarget = 0;
-    private List<double> kotaTerdekat = new List<double>();
+	[SerializeField] private List<AgentBehaviour> Agents = new List<AgentBehaviour>();
+
+	public static string myData;
+	public static List<List<float>> pheromoneGlobal = new List<List<float>>();
+	
+    private int totalSemut = 1;
     private int startPoint;
     private int kotaSelanjutnya;
-    public static string myData;
-    
-    [SerializeField] private List<AgentBehaviour> Agents = new List<AgentBehaviour>();
+    private List<double> kotaTerdekat = new List<double>();
     
     private List<List<float>> jarakAntarKota = new List<List<float>>();
 	private List<List<float>> inversJarakAntarKota = new List<List<float>>();
-	
-	public static List<List<float>> pheromoneGlobal = new List<List<float>>();
+	private List<ModelKota> kotaList = new List<ModelKota>();
 
-	private ANCOS agentSemut = new ANCOS();
+	private ANCOS agentSemut;
 	
 	// Start is called before the first frame update
     void Start()
     {
 	    // Mendapatkan semua gameObject Kota
         daftarKota = GameObject.FindGameObjectsWithTag("Kota");
-
-        // Instantiate Agent di random Kota
-        startPoint = Random.Range(0, Konstanta.jumlahKota);
-        GameObject newAgent = Instantiate(_prefabsSemut, daftarKota[startPoint].transform.position,
-	        Quaternion.identity);
-        newAgent.transform.parent = parentAgent.transform;
 
         // Mengambil semua lokasi kota yg ada di daftarKota
         foreach (GameObject Kota in daftarKota)
@@ -68,6 +61,12 @@ public class SimulationManager : MonoBehaviour
             kotaList.Add(mKota);
         }
 
+        // Instantiate Agent di random Kota
+        startPoint = Random.Range(0, Konstanta.jumlahKota);
+        GameObject newAgent = Instantiate(_prefabsSemut, daftarKota[startPoint].transform.position,
+	        Quaternion.identity);
+        newAgent.transform.parent = parentAgent.transform;
+        
         foreach (GameObject semut in GameObject.FindGameObjectsWithTag("Agent"))
         {
             Agents.Add(semut.GetComponent<AgentBehaviour>());
@@ -162,6 +161,8 @@ public class SimulationManager : MonoBehaviour
 			StartCoroutine(Konstanta.ExportCSV("report", myData));
 		}
 
+		agentSemut = new ANCOS("Semut " + totalSemut);
+		newAgent.name = agentSemut.NamaSemut;
 		agentSemut.PheromoneLokal = pheromoneGlobal;
 		
 		for (int i = 0; i < daftarKota.Length; i++)
@@ -183,40 +184,52 @@ public class SimulationManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        for (int i = 0; i < Agents.Count; i++)
-        {
-            if (KotaAgentDistance(Agents[i].transform, daftarKota[kotaSelanjutnya].transform))
-            {
-                UpdateNextKota();
-            }
-        }
+	    for (int i = 0; i < Agents.Count; i++)
+	    {
+		    if (KotaAgentDistance(Agents[i].transform, daftarKota[kotaSelanjutnya].transform))
+		    {
+			    UpdateNextKota();
+		    }
+	    }
     }
 
     private void UpdateNextKota()
     {
-	    kotaTerdekat.Clear();
-	    for (int kotaTujuan = 0; kotaTujuan < daftarKota.Length; kotaTujuan++)
+	    if (agentSemut.ListKotaBelumDitempati.Count != 0)
 	    {
-		    if (agentSemut.ListKotaDitempati.Contains(kotaTujuan))
+		    kotaTerdekat.Clear();
+		    for (int kotaTujuan = 0; kotaTujuan < daftarKota.Length; kotaTujuan++)
 		    {
-			    kotaTerdekat.Add(0f);
+			    if (agentSemut.ListKotaDitempati.Contains(kotaTujuan))
+			    {
+				    kotaTerdekat.Add(0f);
+			    }
+			    else
+			    {
+				    kotaTerdekat.Add(agentSemut.CalcTemporary(startPoint, kotaTujuan, pheromoneGlobal, inversJarakAntarKota, Konstanta.beta));
+			    }
 		    }
-		    else
+			// Mengambil Nilai Maksimal Pada Tabel Temporary 
+		    kotaSelanjutnya = kotaTerdekat.IndexOf(kotaTerdekat.Max());
+
+		    agentSemut.UpdatePheromoneLokal(startPoint, kotaSelanjutnya, jarakAntarKota[startPoint][kotaSelanjutnya], 
+			    daftarKota.Length, Konstanta.q0);
+		    agentSemut.PindahKota(kotaSelanjutnya);
+        
+		    startPoint = kotaSelanjutnya;
+
+		    for (int i = 0; i < Agents.Count; i++)
 		    {
-			    kotaTerdekat.Add(agentSemut.CalcTemporary(startPoint, kotaTujuan, pheromoneGlobal, inversJarakAntarKota, Konstanta.beta));
+			    Agents[i].target = daftarKota[kotaSelanjutnya].transform;
 		    }
 	    }
-
-        kotaSelanjutnya = kotaTerdekat.IndexOf(kotaTerdekat.Max());
-
-		agentSemut.PindahKota(kotaSelanjutnya);
-        
-        startPoint = kotaSelanjutnya;
-
-        for (int i = 0; i < Agents.Count; i++)
-        {
-            Agents[i].target = daftarKota[kotaSelanjutnya].transform;
-        }
+	    else
+	    {
+		    agentSemut.ExportData();
+		    StartCoroutine(Konstanta.ExportCSV("report", myData));
+		    totalSemut++;
+		    NewAgent();
+	    }
     }
 
     private bool KotaAgentDistance(Transform _agent, Transform _target)
@@ -224,5 +237,35 @@ public class SimulationManager : MonoBehaviour
         return Vector3.Distance(_agent.position, _target.position) < 1.5f;
     }
 
-    
+    private void NewAgent()
+    {
+	    pheromoneGlobal = agentSemut.PheromoneLokal;
+	    agentSemut.ListKotaDitempati.Clear();
+	    agentSemut.ListKotaBelumDitempati.Clear();
+	    agentSemut.NamaSemut = "Semut " + totalSemut;
+	    
+	    startPoint = Random.Range(0, Konstanta.jumlahKota);
+	    
+	    Destroy(GameObject.FindWithTag("Agent"));
+	    Agents.Clear();;
+	    GameObject newAgent = Instantiate(_prefabsSemut, daftarKota[startPoint].transform.position,
+		    Quaternion.identity);
+	    newAgent.transform.parent = parentAgent.transform;
+	    newAgent.name = agentSemut.NamaSemut;
+	    Agents.Add(newAgent.GetComponent<AgentBehaviour>());
+	    
+	    for (int i = 0; i < daftarKota.Length; i++)
+	    {
+		    if (startPoint != i)
+		    {
+			    agentSemut.ListKotaBelumDitempati.Add(i);
+		    }
+		    else
+		    {
+			    agentSemut.ListKotaDitempati.Add(i);
+		    }
+	    }
+	    
+	    UpdateNextKota();
+    }
 }

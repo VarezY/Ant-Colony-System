@@ -376,7 +376,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b384386cd2dc0840b8b7aebe05051e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ExportDataAwal: 0
+  ExportDataAwal: 1
   _prefabsSemut: {fileID: 2890753758298666787, guid: aab09e7274a23684d86947eed0bf749e, type: 3}
   parentAgent: {fileID: 1421027601}
   daftarKota: []

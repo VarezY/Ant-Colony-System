@@ -20,6 +20,7 @@ namespace DefaultNamespace
         // Total Jarak yang di Tempuh
         private float totalJarakAgent = 0f;
 
+        // Nama Semut
         private string namaSemut;
         
         #endregion
@@ -85,9 +86,9 @@ namespace DefaultNamespace
         }
         
         // Mengupdate Pheromone Lokal dan Total Jarak Semut
-        public void UpdatePheromoneLokal(int _Xaxis, int _Yaxis, float _jarakKota, int _jumlahKota, float _q0)  
+        public void UpdatePheromoneLokal(int _Xaxis, int _Yaxis, float _jarakKota, int _jumlahKota)  
         {
-            float newPheromone = ((1 - _q0) * pheromoneLokal[_Xaxis][_Yaxis]) + (_q0 * DeltaPheromone(_jarakKota, _jumlahKota));
+            float newPheromone = ((1 - Konstanta.P) * pheromoneLokal[_Xaxis][_Yaxis]) + (Konstanta.P * DeltaPheromone(_jarakKota, _jumlahKota));
             pheromoneLokal[_Xaxis][_Yaxis] = newPheromone;
             pheromoneLokal[_Yaxis][_Xaxis] = newPheromone;
             TotalJarakAgent += _jarakKota;

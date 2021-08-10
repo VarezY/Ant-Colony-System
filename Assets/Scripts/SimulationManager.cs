@@ -217,7 +217,7 @@ public class SimulationManager : MonoBehaviour
 		    kotaSelanjutnya = kotaTerdekat.IndexOf(kotaTerdekat.Max());
 
 		    agentSemut.UpdatePheromoneLokal(startPoint, kotaSelanjutnya, jarakAntarKota[startPoint][kotaSelanjutnya], 
-			    daftarKota.Length, Konstanta.q0);
+			    daftarKota.Length);
 		    agentSemut.PindahKota(kotaSelanjutnya);
         
 		    startPoint = kotaSelanjutnya;
@@ -252,7 +252,7 @@ public class SimulationManager : MonoBehaviour
 	    startPoint = Random.Range(0, Konstanta.jumlahKota);
 	    
 	    Destroy(GameObject.FindWithTag("Agent"));
-	    Agents.Clear();;
+	    Agents.Clear();
 	    GameObject newAgent = Instantiate(_prefabsSemut, daftarKota[startPoint].transform.position,
 		    Quaternion.identity);
 	    newAgent.transform.parent = parentAgent.transform;
